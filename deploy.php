@@ -82,7 +82,7 @@ if (!empty(TOKEN) && isset($_SERVER["HTTP_X_HUB_SIGNATURE"]) && $token !== hash_
                 // pull
                 fputs($file, "*** AUTO PULL INITIATED ***" . "\n");
                 chdir($dir);
-                $result = shell_exec(GIT . " pull 2>&1");
+                $result = shell_exec(GIT . " pull --force 2>&1");
 
                 fputs($file, $result . "\n");
 
