@@ -23,18 +23,27 @@ Copy the __git-deploy__ folder and its contents in to your public folder (typica
 Rename __git-deploy/config.sample.php__ to __git-deploy/config.php__, and update each variable to a value that suits your needs. An example of a live configuration is below.
 
 ```PHP
+<?php
 define("TOKEN", "secret-token");
-define("REMOTE_REPOSITORY", "git@github.com:username/custom-project.git");
-define("DIR", "/var/www/vhosts/repositories/custom-project");
+define("REMOTE_REPOSITORY", "git@github.com:username/repository.git");
+
 define("BRANCH", "refs/heads/master");
-define("LOGFILE", "deploy.log");
+define("LOGFILE", "logs.prod");
+define("DIR", "/var/www/vhosts/repository/");
+define("AFTER_PULL", "");
+
+define("BRANCH_DEV", "refs/heads/develop");
+define("LOGFILE_DEV", "logs.dev");
+define("DIR_DEV", "/var/www/vhosts/repository/");
+define("AFTER_PULL_DEV", "");
+
 define("GIT", "/usr/bin/git");
-define("AFTER_PULL", "/usr/bin/node ./node_modules/gulp/bin/gulp.js default");
 ```
 ### Permissions
 
 When __deploy.php__ is called by the web-hook, the webserver user (`www`, `www-data`, `apache`, etc...) will attempt to run `git pull ...`. Since you probably cloned into the repository as yourself, and your user therefore owns it, the webserver user needs to be given write access. It is suggested this be accomplished by changing the repository group to the webserver user's and giving the group write permissions:
 
+0. Clone the repository with the following command `sudo -Hu www-data git clone git@github.com:username/repository.git:`
 1. Open a terminal to the directory containing the repository on the server.
 2. run `sudo chown -R yourusername:webserverusername custom-project-repo-dir/` to change the group of the repo.
 3. run `sudo chmod -R g+s custom-project-repo-dir/` to make the group assignment inherited for new files/dirs.
