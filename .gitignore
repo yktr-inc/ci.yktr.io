@@ -1,2 +1,3 @@
-/logs
+/logs.dev
+/logs.prod
 /config.php

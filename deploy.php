@@ -4,6 +4,7 @@ require_once("config.php");
 $content = file_get_contents("php://input");
 $json    = json_decode($content, true);
 $file    = fopen(LOGFILE, "a");
+$file_dev = fopen(LOGFILE_DEV, "a");
 $time    = time();
 $token   = false;
 
@@ -21,9 +22,12 @@ date_default_timezone_set("UTC");
 fputs($file, date("d-m-Y (H:i:s)", $time) . "\n");
 
 // function to forbid access
-function forbid($file, $reason) {
+function forbid($file, $reason)
+{
     // explain why
-    if ($reason) fputs($file, "=== ERROR: " . $reason . " ===\n");
+    if ($reason) {
+        fputs($file, "=== ERROR: " . $reason . " ===\n");
+    }
     fputs($file, "*** ACCESS DENIED ***" . "\n\n\n");
     fclose($file);
 
@@ -33,7 +37,8 @@ function forbid($file, $reason) {
 }
 
 // function to return OK
-function ok() {
+function ok()
+{
     ob_start();
     header("HTTP/1.1 200 OK");
     header("Connection: close");
@@ -57,15 +62,26 @@ if (!empty(TOKEN) && isset($_SERVER["HTTP_X_HUB_SIGNATURE"]) && $token !== hash_
     forbid($file, "No token detected");
 } else {
     // check if pushed branch matches branch specified in config
-    if ($json["ref"] === BRANCH) {
+    if ($json["ref"] === BRANCH || $json["ref"] === BRANCH_DEV) {
+        
+    
+        if($json["ref"] === BRANCH_DEV){
+            $file = $file_dev;
+            $dir = DIR_DEV;
+            $afterPull = AFTER_PULL_DEV;
+        }else{
+            $dir = DIR;
+            $afterPull = AFTER_PULL;
+        }
+
         fputs($file, $content . PHP_EOL);
 
         // ensure directory is a repository
-        if (file_exists(DIR . ".git") && is_dir(DIR)) {
+        if (file_exists($dir . ".git") && is_dir($dir)) {
             try {
                 // pull
                 fputs($file, "*** AUTO PULL INITIATED ***" . "\n");
-                chdir(DIR);
+                chdir($dir);
                 $result = shell_exec(GIT . " pull 2>&1");
 
                 fputs($file, $result . "\n");
@@ -74,10 +90,10 @@ if (!empty(TOKEN) && isset($_SERVER["HTTP_X_HUB_SIGNATURE"]) && $token !== hash_
                 ok();
 
                 // execute AFTER_PULL if specified
-                if (!empty(AFTER_PULL)) {
+                if (!empty($afterPull)) {
                     try {
                         fputs($file, "*** AFTER_PULL INITIATED ***" . "\n");
-                        $result = shell_exec(AFTER_PULL);
+                        $result = shell_exec($afterPull);
                         fputs($file, $result . "\n");
                     } catch (Exception $e) {
                         fputs($file, $e . "\n");
@@ -88,9 +104,9 @@ if (!empty(TOKEN) && isset($_SERVER["HTTP_X_HUB_SIGNATURE"]) && $token !== hash_
                 fputs($file, $e . "\n");
             }
         } else {
-            fputs($file, "=== ERROR: DIR is not a repository ===" . "\n");
+            fputs($file, "=== ERROR: $dir is not a repository ===" . "\n");
         }
-    } else{
+    } else {
         fputs($file, "=== ERROR: Pushed branch does not match BRANCH ===\n");
     }
 }
